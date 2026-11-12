@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+</head>
+<body>
+    <div class="container d-flex flex-column align-items-center my-5">
+        <div class="w-100 d-flex justify-content-end mb-3" style="max-width: 1000px;">
+            <a href="/" class="btn btn-primary shadow-sm">Back</a>
+        </div>
+        <div class="card p-4 shadow-sm w-100" style="max-width: 1000px;">
+            <form action="/update_data?id=<%= id %>" method="post" enctype="multipart/form-data">
+                <h3 class="text-primary text-uppercase font-weight-bold mt-3 text-left">EDIT - <%= institution %></h3>
+                <p class="mb-1">Integrasi dengan Mitra <%= institution %> menggunakan API <%= integration %> <%= vaType %>, data dibuat pada <%= create_date %></p>
+
+                <% if (typeof message !== 'undefined' && message) { %>
+                    <div class="alert alert-success w-100 text-center mb-4 shadow-sm" style="max-width: 1000px;" role="alert">
+                        <strong><%= message %></strong>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="outline: none;">
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="outline: none;">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                <% } %>
+
+                <hr class="mb-4">
+                <div class="mb-3">
+                    <label>Name of institution<label class="font-weight-bold text-danger">*</label></label>
+                    <input type="text" class="form-control" id="projectName" name="institutionName" placeholder="Integration with.." value="<%= institution %>" disabled>
+                </div>
+                <div class="mb-4">
+                    <label>API Name<label class="font-weight-bold text-danger">*</label></label>
+                    <input type="text" name="integrationType" id="integrationType" class="form-control text-secondary" disabled value="<%= integration %>" disabled>
+                </div>  
+                <% if (integration !== 'QRIS MPM SNAP') { %>
+                    <div class="mb-4" id="hidden">
+                        <label>Virtual Account type<label class="font-weight-bold text-danger">*</label></label>
+                        <input type="text" name="vaType" id="vaType" class="form-control text-secondary" value="<%= vaType %>" disabled>
+                    </div>
+                <% } %>
+
+                <h6 class="text-uppercase font-weight-bold text-primary mb-1 mt-5">📋 Dokumen Integrasi</h6>
+                <hr class="mb-3">
+                <div class="form-row mb-3">
+                    <div class="form-group col-md-6 mb-0 pr-3">
+                        <label>Form Pendaftaran API</label>
+                        <%- fields["Form_Pendaftaran_API"] %>
+                    </div>
+                    <div class="form-group col-md-6 mb-0 pl-3">
+                        <label>Memo Bisnis</label>
+                        <%- fields["Memo_Bisnis"] %>
+                    </div>
+                </div>
+                <div class="form-row mb-3">
+                    <div class="form-group col-md-6 mb-0 pr-3">
+                        <label>BRD</label>
+                        <%- fields["BRD"] %>
+                    </div>
+                    <div class="form-group col-md-6 mb-0 pl-3">
+                        <label>Form Register Deployment</label>
+                        <%- fields["Form_Deployment"] %>
+                    </div>
+                </div>
+                <div class="form-row mb-4">
+                    <div class="form-group col-md-6 mb-0 pr-3">
+                        <label>Outline SIT</label>
+                        <%- fields["Outline_SIT"] %>
+                    </div>
+                    <div class="form-group col-md-6 mb-0 pl-3">
+                        <label>BA UAT</label>
+                        <%- fields["BA_UAT"] %>
+                    </div>
+                </div>
+
+                <div class="mt-5">
+                    <h6 class="text-uppercase font-weight-bold text-primary mb-1">📁 Dokumen Verifikasi ASPI</h6>
+                    <hr class="mb-3">
+                    <div class="form-row mb-3">
+                        <div class="form-group col-md-6 mb-0 pr-3">
+                            <label>Memo Divisi TI</label>
+                            <%- fields["Memo_IT"] %>
+                        </div>
+                        <div class="form-group col-md-6 mb-0 pl-3">
+                            <label>Surat Permohonan Verifikasi</label>
+                            <%- fields["Surat_Permohonan_Verifikasi"] %>
+                        </div>
+                    </div>
+                    <div class="form-row mb-3">
+                        <div class="form-group col-md-6 mb-0 pr-3">
+                            <label>Surat Penyataan Kebenaran dan Kesesuaian</label>
+                            <%- fields["Surat_Kebenaran"] %>
+                        </div>
+                        <div class="form-group col-md-6 mb-0 pl-3">
+                            <label>Surat Pernyataan Kesesuaian SOP Penyedia</label>
+                            <%- fields["Surat_Kesesuaian"] %>
+                        </div>
+                    </div>
+                    <div class="form-row mb-4">
+                        <div class="form-group col-md-6 mb-0 pr-3">
+                            <label>Matrix Penjelasan SOP</label>
+                            <%- fields["Matriks_Penjelasan_SOP"] %>
+                        </div>
+                        <div class="form-group col-md-6 mb-0 pl-3">
+                            <label>SOP Penyedia Layanan</label>
+                            <%- fields["SOP_Penyedia"] %>
+                        </div>
+                    </div>
+
+                    <div mt-4" id="openButton">
+                         <% if (typeof vaType !== 'undefined' && vaType === 'Off Us') { %>
+                            <div class="mt-5">
+                                <h6 class="text-uppercase font-weight-bold text-primary mb-1">📋 Hasil Uji Developer Site VA SNAP Off Us (Pengguna Layanan)</h6>
+                                <hr class="mb-3">
+                                <div class="form-row mb-3">
+                                    <div class="form-group col-md-6 mb-0 pr-3">
+                                        <label>Service Inquiry <label class="font-weight-bold text-success">(Positif)</label></label>
+                                        <%- fields["24 - API Virtual Account - Inquiry - Positif"] %>
+                                    </div>
+                                    <div class="form-group col-md-6 mb-0 pl-3">
+                                        <label>Service Inquiry <label class="font-weight-bold text-danger">(Negatif)</label></label>
+                                        <%- fields["24 - API Virtual Account - Inquiry - Negatif"] %>
+                                    </div>
+                                </div>
+                                <div class="form-row mb-3">
+                                    <div class="form-group col-md-6 mb-0 pr-3">
+                                        <label>Service Payment <label class="font-weight-bold text-success">(Positif)</label></label>
+                                        <%- fields["25 - API Virtual Account - Payment - Positif"] %>
+                                    </div>
+                                    <div class="form-group col-md-6 mb-0 pl-3">
+                                        <label>Service Payment <label class="font-weight-bold text-danger">(Negatif)</label></label>
+                                        <%- fields["25 - API Virtual Account - Payment - Negatif"] %>
+                                    </div>
+                                </div>
+                                <div class="form-row mb-4">
+                                    <div class="form-group col-md-6 mb-0 pr-3">
+                                        <label>Service Inquiry Status <label class="font-weight-bold text-success">(Positif)</label></label>
+                                        <%- fields["26 - API Virtual Account - Inquiry Status - Positif"] %>
+                                    </div>
+                                    <div class="form-group col-md-6 mb-0 pl-3">
+                                        <label>Service Inquiry Status <label class="font-weight-bold text-danger">(Negatif)</label></label>
+                                        <%- fields["26 - API Virtual Account - Inquiry Status - Negatif"] %>
+                                    </div>
+                                </div>
+                            </div>
+                        <% } %>
+
+                        <% if (typeof vaType !== 'undefined' && vaType === 'On Us') { %>
+                            <div class="mt-5">
+                                <h6 class="text-uppercase font-weight-bold text-primary mb-1">📋 Hasil Uji Developer Site VA SNAP On Us (Penyedia Layanan)</h6>
+                                <hr class="mb-3">
+                                <div class="form-row mb-3">
+                                    <div class="form-group col-md-6 mb-0 pr-3">
+                                        <label>Service Create VA <label class="font-weight-bold text-success">(Positif)</label></label>
+                                        <%- fields["27 - API Virtual Account - Create VA - Positif"] %>
+                                    </div>
+                                    <div class="form-group col-md-6 mb-0 pl-3">
+                                        <label>Service Create VA <label class="font-weight-bold text-danger">(Negatif)</label></label>
+                                        <%- fields["27 - API Virtual Account - Create VA - Negatif"] %>
+                                    </div>
+                                </div>
+                                <div class="form-row mb-3">
+                                    <div class="form-group col-md-6 mb-0 pr-3">
+                                        <label>Service Inquiry VA <label class="font-weight-bold text-success">(Positif)</label></label>
+                                        <%- fields["30 - API Virtual Account - Inquiry VA - Positif"] %>
+                                    </div>
+                                    <div class="form-group col-md-6 mb-0 pl-3">
+                                        <label>Service Inquiry VA <label class="font-weight-bold text-danger">(Negatif)</label></label>
+                                        <%- fields["30 - API Virtual Account - Inquiry VA - Negatif"] %>
+                                    </div>
+                                </div>
+                                <div class="form-row mb-4">
+                                    <div class="form-group col-md-6 mb-0 pr-3">
+                                        <label>Service Update VA <label class="font-weight-bold text-success">(Positif)</label></label>
+                                        <%- fields["28 - API Virtual Account - Update VA - Positif"] %>
+                                    </div>
+                                    <div class="form-group col-md-6 mb-0 pl-3">
+                                        <label>Service Update VA <label class="font-weight-bold text-danger">(Negatif)</label></label>
+                                        <%- fields["28 - API Virtual Account - Update VA - Negatif"] %>
+                                    </div>
+                                </div>
+                                <div class="form-row mb-4">
+                                    <div class="form-group col-md-6 mb-0 pr-3">
+                                        <label>Service Payment <label class="font-weight-bold text-success">(Positif)</label></label>
+                                        <%- fields["25 - API Virtual Account - Payment VA - Positif"] %>
+                                    </div>
+                                    <div class="form-group col-md-6 mb-0 pl-3">
+                                        <label>Service Payment <label class="font-weight-bold text-danger">(Negatif)</label></label>
+                                        <%- fields["25 - API Virtual Account - Payment VA - Negatif"] %>
+                                    </div>
+                                </div>
+                            </div>
+                        <% } %>
+
+                        <% if (typeof integration !== 'undefined' && integration === 'QRIS MPM SNAP') { %>
+                            <div class="mt-5">
+                                <h6 class="text-uppercase font-weight-bold text-primary mb-1">📋 Hasil Uji Developer Site QRIS MPM SNAP (Penyedia Layanan)</h6>
+                                <hr class="mb-3">
+                                <div class="form-row mb-3">
+                                    <div class="form-group col-md-6 mb-0 pr-3">
+                                        <label>Generate QRIS MPM <label class="font-weight-bold text-success">(Positif)</label></label>
+                                        <%- fields["47 - API Generate QR MPM - Positif"] %>
+                                    </div>
+                                    <div class="form-group col-md-6 mb-0 pl-3">
+                                        <label>Generate QRIS MPM <label class="font-weight-bold text-danger">(Negatif)</label></label>
+                                        <%- fields["47 - API Generate QR MPM - Negatif"] %>
+                                    </div>
+                                </div>
+                                <div class="form-row mb-3">
+                                    <div class="form-group col-md-6 mb-0 pr-3">
+                                        <label>QRIS Check Status <label class="font-weight-bold text-success">(Positif)</label></label>
+                                        <%- fields["51 - API Query Payment - Positif"] %>
+                                    </div>
+                                    <div class="form-group col-md-6 mb-0 pl-3">
+                                        <label>QRIS Check Status <label class="font-weight-bold text-danger">(Negatif)</label></label>
+                                        <%- fields["51 - API Query Payment - Negatif"] %>
+                                    </div>
+                                </div>
+                                <div class="form-row mb-4">
+                                    <div class="form-group col-md-6 mb-0 pr-3">
+                                        <label>QRIS Callback <label class="font-weight-bold text-success">(Positif)</label></label>
+                                        <%- fields["52 - API Payment Notification - Positif"] %>
+                                    </div>
+                                    <div class="form-group col-md-6 mb-0 pl-3">
+                                        <label>QRIS Callback <label class="font-weight-bold text-danger">(Negatif)</label></label>
+                                        <%- fields["52 - API Payment Notification - Negatif"] %>
+                                    </div>
+                                </div>
+                            </div>
+                        <% } %>
+
+                        <h6 class="text-uppercase font-weight-bold text-primary mb-1 mt-5">🗃️ Hasil Uji Fungsionalitas</h6>
+                        <hr class="mb-3">
+                        <div class="form-row mb-3">
+                            <div class="form-group col-md-6 mb-0 pr-3">
+                                <label>BA Uji Fungsionalitas</label>
+                                <%- fields["BA_Uji_Fungsi"] %>
+                            </div>
+                            <div class="form-group col-md-6 mb-0 pl-3">
+                                <label>Hasil Uji Fungsionalitas</label>
+                                <%- fields["Hasil_Uji_Fungsi"] %>
+                            </div>
+                        </div>
+                        <div class="row no-gutters mb-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary btn-block">Update</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form> 
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('change', function(event) {
+            if (event.target && event.target.classList.contains('custom-file-input')) {
+                const inputElement = event.target;
+                const fileName = inputElement.value.split('\\').pop();
+                
+                const labelId = 'label_' + inputElement.id;
+                const targetLabel = document.getElementById(labelId);
+                
+                if (targetLabel) {
+                    targetLabel.textContent = fileName;
+                    targetLabel.classList.add('selected');
+                }
+            }
+        });
+
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+</body>
+</html>
