@@ -256,7 +256,7 @@ app.get("/read_data", async (req, res) => {
 
     if (typeof id === "undefined" || id === "") {
       return res.status(400).send("ID data tidak valid.");
-
+      
     } else {
       const dataDb = (await db.query("SELECT * FROM upload_document WHERE id = $1", [id])).rows;
       const targetData = dataDb[0]; 
@@ -363,12 +363,11 @@ app.get("/delete_file", async (req, res) => {
     } else {
       const filePath = path.join(process.cwd(), 'data', 'uploaded_file', folderName, fileName);
 
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error('Terjadi kesalahan saat menghapus file:', err);
-          return;
-        }
-      });
+      try {
+        await fs.promises.unlink(filePath);
+      } catch (err) {
+        console.error('Terjadi kesalahan saat menghapus file:', err);
+      }
 
       const targetData = dataDb[0].uploaded_files;
       const arrayFile = typeof targetData === "string" ? JSON.parse(targetData) : targetData;
@@ -433,6 +432,11 @@ app.post("/update_data", upload.fields([
     if (!id || id === "") {
       return res.status(400).send("ID data tidak valid.");
     }
+
+    if (!req.files || Object.keys(req.files).length === 0) {
+        req.flash("error", "Anda belum memilih dokumen baru untuk diperbarui!");
+        return res.redirect(`/read_data?id=${id}`);
+      }
 
     const dataDb = (await db.query("SELECT * FROM upload_document WHERE id = $1", [id])).rows;
     const targetData = dataDb[0];
