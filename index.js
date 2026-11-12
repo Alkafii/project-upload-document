@@ -114,7 +114,31 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+// const upload = multer({ storage: storage });
+const fileFilter = (req, file, cb) => {
+  const allowedMimes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel", // .xls
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  ];
+
+  const allowedExts = [".pdf", ".doc", ".docx", ".xls", ".xlsx"];
+  const ext = path.extname(file.originalname).toLowerCase();
+
+  if (allowedMimes.includes(file.mimetype) && allowedExts.includes(ext)) {
+    cb(null, true); // File diterima
+  } else {
+    cb(new Error("Format file tidak valid! Hanya diperbolehkan PDF, Word, dan Excel."), false);
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter
+});
+
 
 
 // Homepage
@@ -149,7 +173,9 @@ app.get("/",async (req, res) => {
                             </button>
                             <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
                               <a class="dropdown-item" href="/read_data?id=${dataDb[i].id}">Update</a>
-                              <a class="dropdown-item text-danger" href="/delete?id=${dataDb[i].id}">Delete</a>
+                              <button type="button" class="dropdown-item text-danger" data-toggle="modal" data-target="#deleteModal" data-id="${dataDb[i].id}" data-name="${dataDb[i].name}">
+                                Delete
+                              </button>
                             </div>
                           </div>
                        </div>`;
@@ -303,7 +329,7 @@ app.get("/read_data", async (req, res) => {
 
           if (isUploaded) {
             fields[docName] = `<div class="custom-file">
-                                  <input type="file" class="custom-file-input" name="${docName}" id="doc_${i}" style="cursor: pointer;" />
+                                  <input type="file" class="custom-file-input" name="${docName}" id="doc_${i}" accept=".pdf,.doc,.docx,.xls,.xlsx" style="cursor: pointer;" />
                                   <label class="custom-file-label text-truncate text-success" for="doc_${i}" id="label_doc_${i}" data-browse="🗙" style="padding-right: 50px; font-weight: 500;" >
                                     ${foundFileName}
                                   </label>
@@ -318,7 +344,7 @@ app.get("/read_data", async (req, res) => {
                               <small class="form-text text-muted">Document has been saved, click <a href="/download_file?id=${id}&fileName=${foundFileName}" target="_blank" class="font-weight-bold text-primary"> here </a> to download this document.</small>`;
           } else {
             fields[docName] = `<div class="custom-file">
-                                  <input type="file" class="custom-file-input" name="${docName}" id="doc_${i}">
+                                  <input type="file" class="custom-file-input" name="${docName}" id="doc_${i}" accept=".pdf,.doc,.docx,.xls,.xlsx">
                                   <label class="custom-file-label text-truncate text-muted" id="label_doc_${i}" for="doc_${i}" data-browse="🗀" style="padding-right: 50px;">Choose file</label>
                               </div>
                               <small class="form-text text-muted">File formats: PDF, DOCX, XLSX.</small>`;

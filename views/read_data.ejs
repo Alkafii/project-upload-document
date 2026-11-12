@@ -31,7 +31,7 @@
                         </button>
                     </div>
                 <% } %>
-                
+
                 <hr class="mb-4">
                 <div class="mb-3">
                     <label>Name of institution<label class="font-weight-bold text-danger">*</label></label>
@@ -276,6 +276,39 @@
             }
         });
 
+        $('.custom-file-input').on('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+
+            // Bersihkan pesan error sebelumnya setiap kali user memilih file baru
+            $('#clientErrorBox').empty();
+
+            const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx'];
+            const fileName = file.name;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+
+            if (!allowedExtensions.includes(fileExtension)) {
+                // Tampilkan kotak alert Bootstrap di #clientErrorBox
+                $('#clientErrorBox').html(`
+                    <div class="alert alert-danger p-2 text-center" role="alert">
+                        <small>Format file tidak didukung! Harap unggah file PDF, Word (.doc/.docx), atau Excel (.xls/.xlsx).</small>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="outline: none;">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                `);
+
+                // Gulir layar ke atas agar user melihat pesan errornya
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                // Reset input file
+                $(this).val('');
+                $(this).next('.custom-file-label').removeClass("selected").html('Choose file');
+                return;
+            }
+
+            $(this).next('.custom-file-label').addClass("selected").html(fileName);
+        });
     </script>
 
     <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
