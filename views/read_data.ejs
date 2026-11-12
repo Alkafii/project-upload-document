@@ -15,7 +15,7 @@
                 <h3 class="text-primary text-uppercase font-weight-bold mt-3 text-left">EDIT - <%= institution %></h3>
                 <p class="mb-1">Integrasi dengan Mitra <%= institution %> menggunakan API <%= integration %> <%= vaType %>, data dibuat pada <%= create_date %></p>
 
-                <% if (typeof message !== 'undefined' && message) { %>
+                <% if (message) { %>
                     <div class="alert alert-success w-100 text-center mb-4 shadow-sm" style="max-width: 1000px;" role="alert">
                         <strong><%= message %></strong>
                         <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="outline: none;">

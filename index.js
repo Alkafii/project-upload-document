@@ -6,6 +6,9 @@ import fs from "fs";
 import pg from "pg";
 import env from "dotenv";
 import { nanoid } from "nanoid";
+import session from "express-session";
+import flash from "connect-flash";
+import connectPgSimple from "connect-pg-simple";
 
 env.config();
 
@@ -22,13 +25,39 @@ const db = new pg.Pool({
   port: Number(process.env.DB_PORT),
 });
 
+
+// Session dan flash
+const PgSession = connectPgSimple(session);
+
+const sessionMiddleware = session({
+  store: new PgSession({
+    pool: db,
+    tableName: "user_sessions",
+    createTableIfMissing: true,
+  }),
+
+  secret: process.env.SESSION_SECRET,
+
+  resave: false,
+  saveUninitialized: false,
+
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 1000 * 60 * 60 * 24,
+  },
+});
+
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use(sessionMiddleware);
+app.use(flash());
 
 // Multer config
 const targetLocation = "./data/uploaded_file";
-let sessionMessage = "";
+// let sessionMessage = "";
 
 const storage = multer.diskStorage({
   destination: async function (req, file, cb) {
@@ -99,10 +128,8 @@ app.get("/",async (req, res) => {
         integration: "",
         create_date: "",
         rowData: "",
-        message: sessionMessage
+        message: req.flash("success")[0] || ""
       };
-      
-      sessionMessage = "";
 
       if(dataDb.length > 0) {
         for(let i = 0; i < dataDb.length; i++) {
@@ -143,7 +170,7 @@ app.get("/",async (req, res) => {
 // Upload document
 app.get("/upload", (req, res) => {
   try {
-      res.render("upload.ejs", { message: "", errorMessage: "" });
+      res.render("upload.ejs", { message: req.flash("success")[0] || "", errorMessage: req.flash("error")[0] || "", });
   } catch(err) {
       console.log(err);
       res.status(500).send("Terjadi kesalahan pada server. Silakan coba beberapa saat lagi.");
@@ -188,8 +215,10 @@ app.post("/upload", upload.fields([
 ]),async (req, res) => {
   try {
       if (!req.files || Object.keys(req.files).length === 0) {
-        return res.render("upload.ejs", {message: "", errorMessage: "Anda belum upload dokumen!"});
+        req.flash("error", "Anda belum upload dokumen!")
+        return res.redirect("/upload");
       }
+
       const institution = req.body.institutionName || "Unknown";
       let integration = req.body.integrationType || "General";
       const vaType = req.body.vaType || " ";
@@ -211,8 +240,8 @@ app.post("/upload", upload.fields([
   
       await db.query("INSERT INTO upload_document (name, api_name, va_type, folder_name, created_at, updated_at, uploaded_files) VALUES ($1, $2, $3, $4, $5, $6, $7)", [institution, integration, vaType, folderName, date, date, JSON.stringify(uploadedDocuments)]);
 
-      sessionMessage = "Dokumen berhasil diupload";
-      res.redirect("/");
+      req.flash("success", "Dokumen berhasil diupload");
+      return res.redirect("/");
   } catch(err) {
       console.log(err);
       res.status(500).send("Terjadi kesalahan pada server. Silakan coba beberapa saat lagi.");
@@ -304,7 +333,8 @@ app.get("/read_data", async (req, res) => {
           integration: targetData.api_name,
           vaType: targetData.va_type,
           create_date: formatCreateDate,
-          message: sessionMessage,
+          message: req.flash("success")[0] || "",
+          errorMessage: req.flash("error")[0] || "",
           fields: fields
         };
 
@@ -351,8 +381,8 @@ app.get("/delete_file", async (req, res) => {
 
       await db.query("UPDATE upload_document SET updated_at = $1, uploaded_files = $2 WHERE id = $3", [date, JSON.stringify(arrayFile), id]);
 
-      sessionMessage = "Dokumen berhasil dihapus dari server!";
-      res.redirect(`/read_data?id=${id}`);
+      req.flash("success", "Dokumen berhasil dihapus dari server!");
+      return res.redirect(`/read_data?id=${id}`);
     }
   } catch(err) {
     console.error("Error pada rute read_data:", err);
@@ -448,11 +478,11 @@ app.post("/update_data", upload.fields([
       }
     }
 
-    await db.query("UPDATE upload_document SET uploaded_files = $1, updated_at = $2 WHERE id = $3", [JSON.stringify(uploadedDocuments), date, id]);
+    await db.query("UPDATE upload_document SET uploaded_files = $1, updated_at = $2 WHERE id = $3", [JSON.stringify(uploadedDocuments), date, id]);  
 
-    sessionMessage = "Dokumen berhasil diperbarui!";
+    req.flash("success", "Dokumen berhasil diperbarui!");
+    return res.redirect("/");
     // res.redirect(`/read_data?id=${id}`);
-    res.redirect("/");
 
   } catch (err) {
     console.error("Error pada rute update_data:", err);
@@ -527,8 +557,9 @@ app.get("/delete", async (req, res) => {
         return res.status(400).send("ID data tidak valid.");
       } else {
         await db.query("DELETE FROM upload_document WHERE id = $1", [id]);
-        sessionMessage = "Mitra berhasil dihapus!";
-        res.redirect("/");
+
+        req.flash("success", "Mitra berhasil dihapus!");
+        return res.redirect("/");
       }
     }
   } catch(err) {

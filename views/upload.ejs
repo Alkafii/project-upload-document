@@ -14,7 +14,7 @@
             <form action="/upload" method="post" enctype="multipart/form-data">
                 <h3 class="text-primary text-uppercase font-weight-bold mt-3 text-left">Upload Dokumen</h3>
                 <p class="mb-1">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque vel elementum nibh.</p>
-                <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+                <% if (errorMessage) { %>
                     <div class="alert alert-danger p-2 text-center" role="alert">
                         <small><%= errorMessage %></small>
                         <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="outline: none;">
