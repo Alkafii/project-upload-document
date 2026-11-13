@@ -18,7 +18,7 @@
                 <% if (message) { %>
                     <div class="alert alert-success w-100 text-center mb-4 shadow-sm" style="max-width: 1000px;" role="alert">
                         <strong><%= message %></strong>
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="outline: none;">
+                        <button type="button" class="close" aria-label="Close" onclick="hideErrorMessage()" style="outline: none;">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
@@ -113,7 +113,7 @@
                         </div>
                     </div>
 
-                    <div mt-4" id="openButton">
+                    <div class="mt-4" id="openButton">
                          <% if (typeof vaType !== "undefined" && vaType === "Off Us") { %>
                             <div class="mt-5">
                                 <h6 class="text-uppercase font-weight-bold text-primary mb-1">📋 Hasil Uji Developer Site VA SNAP Off Us (Pengguna Layanan)</h6>
@@ -282,93 +282,222 @@
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
     <script>
-        const errorBox = document.getElementById("clientErrorBox");
-        const errorText = document.getElementById("errorMessageText");
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('form[action^="/update_data"]');
+            const errorBox = document.getElementById('clientErrorBox');
+            const errorText = document.getElementById('errorMessageText');
 
-        const MAX_FILE_SIZE = 2 * 1024 * 1024;
+            const MAX_FILE_SIZE = 2 * 1024 * 1024;
+            const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx'];
 
-        const allowedExtensions = ["pdf", "doc", "docx", "xls", "xlsx"];
+            const fileInputs = Array.from(document.querySelectorAll('.custom-file-input'));
 
-        function showErrorMessage(message) {
-            errorText.textContent = message;
-            errorBox.classList.remove(d-"none");
-        }
+            // Simpan label awal, termasuk nama file yang sudah tersimpan.
+            const originalLabels = new Map();
 
-        function hideErrorMessage() {
-            errorBox.classList.add(d-"none");
-        }
+            fileInputs.forEach(function (input) {
+                const label = document.getElementById('label_' + input.id);
 
-        function resetInputFile(input) {
-            input.value = "";
-            const label = document.getElementById("label_" + input.id);
-
-            if (label) {
-                label.textContent = "Choose file";
-                label.classList.remove("selected");
-            }
-        }
-
-        document.addEventListener("change", function(event) {
-            const input = event.target;
-
-            if (!input.classList.contains("custom-file-input")) {
-                return;
-            }
-
-            const file = input.files[0];
-
-            if (!file) return;
-
-            const fileName = file.name;
-            const fileExtension = fileName.split(".").pop().toLowerCase();
-
-            if (!allowedExtensions.includes(fileExtension)) {
-                showErrorMessage(
-                "Format file tidak didukung! Harap unggah PDF, Word (.doc/.docx), atau Excel (.xls/.xlsx)."
-            );
-
-            resetInputFile(input);
-
-            window.scrollTo({top: 0, behavior: "smooth"});
-
-            return;
-            }
-
-            if (file.size > MAX_FILE_SIZE) {
-                showErrorMessage(
-                "Ukuran file terlalu besar! Maksimal dokumen yang diizinkan adalah 2 MB."
-                );
-
-                resetInputFile(input);
-                window.scrollTo({top: 0, behavior: "smooth"});
-
-                return;
-            }
-
-            hideErrorMessage();
-
-            const label = document.getElementById("label_" + input.id);
-
-            if (label) {
-                label.textContent = fileName;
-                label.classList.add("selected");
-            }
-        });
-
-        document.querySelector('form[action^="/update_data"]').addEventListener("submit", function(event) {
-            let fileCount = 0;
-            document.querySelectorAll(".custom-file-input").forEach(function(input) {
-                if (input.files.length > 0) {
-                    fileCount++;
+                if (label) {
+                originalLabels.set(input, label.textContent.trim());
                 }
             });
 
-            if (fileCount === 0) {
-                event.preventDefault();
-                showErrorMessage("Anda belum memilih dokumen baru untuk diperbarui!");
-                window.scrollTo({top: 0, behavior: "smooth"});
+            function showErrorMessage(message) {
+                errorText.textContent = message;
+                errorBox.classList.remove('d-none');
+                errorBox.classList.add('show');
 
-                return;
+                window.scrollTo({
+                top: 0,
+                behavior: 'smooth',
+                });
+            }
+
+            function hideErrorMessage() {
+                errorText.textContent = '';
+                errorBox.classList.add('d-none');
+                errorBox.classList.remove('show');
+            }
+
+            // Agar tombol close pada alert tetap berfungsi.
+            window.hideErrorMessage = hideErrorMessage;
+
+            function validateFile(file) {
+                const extension = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+
+                if (!ALLOWED_EXTENSIONS.includes(extension)) {
+                return 'Format file tidak didukung! Gunakan PDF, DOC, DOCX, XLS, atau XLSX.';
+                }
+
+                if (file.size > MAX_FILE_SIZE) {
+                return 'Ukuran file terlalu besar! Maksimal dokumen adalah 2 MB.';
+                }
+
+                return null;
+            }
+
+            function updateLabel(input, fileName) {
+                const label = document.getElementById('label_' + input.id);
+
+                if (!label) return;
+
+                label.textContent = fileName;
+                label.classList.add('selected');
+                label.classList.remove('text-muted');
+                label.classList.add('text-success');
+            }
+
+            function resetInputFile(input) {
+                input.value = '';
+
+                const label = document.getElementById('label_' + input.id);
+
+                if (!label) return;
+
+                const originalText = originalLabels.get(input) || 'Choose file';
+
+                label.textContent = originalText;
+                label.classList.remove('selected');
+
+                if (originalText === 'Choose file') {
+                label.classList.remove('text-success');
+                label.classList.add('text-muted');
+                }
+            }
+
+            function validateAllSelectedFiles() {
+                for (const input of fileInputs) {
+                if (!input.files || input.files.length === 0) {
+                    continue;
+                }
+
+                const error = validateFile(input.files[0]);
+
+                if (error) {
+                    resetInputFile(input);
+                    showErrorMessage(error);
+                    return false;
+                }
+                }
+
+                return true;
+            }
+
+            fileInputs.forEach(function (input) {
+                // VALIDASI FILE DARI FILE PICKER
+                input.addEventListener('change', function () {
+                if (!input.files || input.files.length === 0) return;
+
+                const file = input.files[0];
+                const error = validateFile(file);
+
+                if (error) {
+                    resetInputFile(input);
+                    showErrorMessage(error);
+                    return;
+                }
+
+                updateLabel(input, file.name);
+
+                if (validateAllSelectedFiles()) {
+                    hideErrorMessage();
+                }
+                });
+
+                const dropArea = input.closest('.custom-file');
+
+                if (!dropArea) return;
+
+                // EFEK SAAT FILE DISERET
+                ['dragenter', 'dragover'].forEach(function (eventName) {
+                dropArea.addEventListener(eventName, function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    dropArea.classList.add('drag-over');
+                });
+                });
+
+                ['dragleave', 'dragend'].forEach(function (eventName) {
+                dropArea.addEventListener(eventName, function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    dropArea.classList.remove('drag-over');
+                });
+                });
+
+                // VALIDASI FILE DARI DRAG AND DROP
+                dropArea.addEventListener('drop', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                dropArea.classList.remove('drag-over');
+
+                const files = event.dataTransfer.files;
+
+                if (!files || files.length === 0) return;
+
+                // Setiap kolom hanya menerima satu dokumen.
+                const file = files[0];
+                const error = validateFile(file);
+
+                if (error) {
+                    resetInputFile(input);
+                    showErrorMessage(error);
+                    return;
+                }
+
+                try {
+                    const transfer = new DataTransfer();
+                    transfer.items.add(file);
+
+                    input.files = transfer.files;
+
+                    updateLabel(input, file.name);
+
+                    if (validateAllSelectedFiles()) {
+                    hideErrorMessage();
+                    }
+                } catch (error) {
+                    showErrorMessage(
+                    'Browser tidak mendukung drag and drop. Silakan pilih file melalui tombol Choose file.'
+                    );
+                }
+                });
+            });
+
+            // Mencegah browser membuka file ketika dilepas di luar area upload.
+            document.addEventListener('dragover', function (event) {
+                event.preventDefault();
+            });
+
+            document.addEventListener('drop', function (event) {
+                if (!event.target.closest('.custom-file')) {
+                event.preventDefault();
+                }
+            });
+
+            // VALIDASI SAAT SUBMIT
+            if (form) {
+                form.addEventListener('submit', function (event) {
+                const selectedFiles = fileInputs.filter(function (input) {
+                    return input.files && input.files.length > 0;
+                });
+
+                if (selectedFiles.length === 0) {
+                    event.preventDefault();
+
+                    showErrorMessage('Anda belum memilih dokumen baru untuk diperbarui!');
+
+                    return;
+                }
+
+                if (!validateAllSelectedFiles()) {
+                    event.preventDefault();
+                }
+                });
             }
         });
     </script>
