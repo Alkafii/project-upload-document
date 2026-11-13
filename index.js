@@ -604,34 +604,52 @@ app.get("/download_file", async (req, res) => {
 app.get("/delete", async (req, res) => {
   try{
     const id = req.query.id;
+
+    if (typeof id === "undefined" || id === "") {
+      return res.status(400).send("ID data tidak valid.");
+    }
+
     const dataDb = (await db.query("SELECT folder_name FROM upload_document WHERE id = $1", [id])).rows;
+
+    if(dataDb.length === 0) {
+      return res.status(404).json({ message: 'Data integrasi tidak ditemukan!' });
+    }
+
     const folderName = dataDb[0].folder_name;
 
     if (!folderName) {
-      console.error('Parameter tidak lengkap:', { folderName, fileName });
-      return res.status(400).json({ message: 'folderName dan fileName wajib dikirim!' });
-    } else {
-      const folderPath = path.join(process.cwd(), 'data', 'uploaded_file', folderName);
+      console.error('Folder penyimpanan tidak ditemukan:', { folderName });
+      return res.status(400).json({ message: 'folderName wajib dikirim!' });
 
-      fs.rm(folderPath, { recursive: true, force: true }, (err) => {
-        if (err) {
-          console.error('Terjadi kesalahan saat menghapus folder:', err);
-          return;
-        }
+    } else {
+      if (path.basename(folderName) !== folderName) {
+        return res.status(400).send("Nama folder atau file tidak valid.");
+      }
+      
+      const baseFolder = path.resolve(process.cwd(), "data", "uploaded_file");
+      const folderPath = path.resolve(baseFolder, folderName);
+      const relativeFolder = path.relative(baseFolder, folderPath);
+
+      if (
+        relativeFolder.startsWith("..") ||
+        path.isAbsolute(relativeFolder)
+      ) {
+        return res.status(403).send("Akses file ditolak.");
+      }
+
+      await fs.promises.rm(folderPath, { 
+        recursive: true, 
+        force: true 
       });
 
-      if (typeof id === "undefined" || id === "") {
-        return res.status(400).send("ID data tidak valid.");
-      } else {
-        await db.query("DELETE FROM upload_document WHERE id = $1", [id]);
+      await db.query("DELETE FROM upload_document WHERE id = $1", [id]);
 
-        req.flash("success", "Mitra berhasil dihapus!");
-        return res.redirect("/");
-      }
+      req.flash("success", "Mitra berhasil dihapus!");
+      return res.redirect("/");
     }
   } catch(err) {
-    console.error("Error pada download_file:", err);
-    res.status(500).send("Terjadi kesalahan sistem saat memproses unduhan berkas.");
+    console.error("Error pada route /delete:", err);
+    res.status(500).send("Terjadi kesalahan sistem pada route /delete.");
   }
 })
 
