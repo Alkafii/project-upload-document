@@ -564,40 +564,86 @@ app.get("/download_file", async (req, res) => {
     const id = req.query.id;
     const fileName = req.query.fileName;
 
-    if (!id || !fileName) {
-      return res.status(400).send("Parameter pengunduhan berkas tidak valid.");
+    if (typeof id === "undefined" || id === "") {
+      return res.status(400).send("ID data tidak valid.");
     }
 
-    const safeFileName = path.basename(fileName); 
+    if (!fileName || typeof fileName !== "string") {
+      return res.status(400).send("Nama file wajib diisi.");
+    }
+
+    if (path.basename(fileName) !== fileName) {
+      return res.status(400).send("Nama file tidak valid.");
+    }
 
     const dataDb = (await db.query("SELECT * FROM upload_document WHERE id = $1", [id])).rows;
+
+    if (dataDb.length === 0) {
+      return res.status(404).send("Data integrasi tidak ditemukan.");
+    }
+
     const targetData = dataDb[0];
 
-    if (!targetData) {
-      return res.status(404).send("Data institusi pemilik berkas tidak ditemukan di database.");
+    let uploadedFiles = [];
+
+    try {
+      uploadedFiles = typeof targetData.uploaded_files === "string" ? JSON.parse(targetData.uploaded_files) : targetData.uploaded_files || [];
+    } catch (err) {
+      console.error("Format uploaded_files tidak valid:", err);
+      return res.status(500).send("Data dokumen pada database tidak valid.");
+    }
+
+    if (!Array.isArray(uploadedFiles)) {
+      return res.status(500).send("Data dokumen tidak valid.");
+    }
+
+    if (!uploadedFiles.includes(fileName)) {
+      return res.status(404).send("Dokumen tidak terdaftar pada integrasi ini.");
     }
 
     const savedFolderName = targetData.folder_name;
-    const absoluteFilePath = path.resolve(targetLocation, savedFolderName, safeFileName);
 
-    const resolvedTargetBase = path.resolve(targetLocation);
+    if (!savedFolderName || typeof savedFolderName !== "string" || savedFolderName !== path.basename(savedFolderName) || savedFolderName === "." || savedFolderName === "..")
+    {
+      return res.status(400).send("Nama folder penyimpanan tidak valid.");
+    }
 
-    if (!absoluteFilePath.startsWith(resolvedTargetBase)) {
+    const baseFolder = path.resolve(process.cwd(), "data", "uploaded_file");
+    const absoluteFilePath = path.resolve(baseFolder, savedFolderName, fileName);
+
+    const relativeFile = path.relative(baseFolder, absoluteFilePath);
+
+    if (!relativeFile || relativeFile === ".." || relativeFile.startsWith(`..${path.sep}`) || path.isAbsolute(relativeFile))
+    {
       return res.status(403).send("Akses unduhan dokumen ditolak.");
     }
 
     try {
-      await fs.promises.access(absoluteFilePath, fs.constants.F_OK);
-      res.download(absoluteFilePath);
-    } catch (err) {
-      res.status(404).send("Berkas fisik tidak ditemukan di dalam folder penyimpanan server.");
-    }
+      const fileStat = await fs.promises.stat(absoluteFilePath);
 
+      if (!fileStat.isFile()) {
+        return res.status(404).send("Berkas tidak ditemukan.");
+      }
+
+      return res.download(absoluteFilePath, fileName, (err) => {
+        if (err) {
+          console.error("Gagal mengunduh file:", err);
+
+          if (!res.headersSent) {
+            return res.status(500).send("Gagal mengunduh dokumen.");
+          }
+        }
+      });
+
+    } catch (err) {
+      return res.status(404).send("Berkas fisik tidak ditemukan di dalam folder penyimpanan server.");
+    }
   } catch (err) {
     console.error("Error pada download_file:", err);
     res.status(500).send("Terjadi kesalahan sistem saat memproses unduhan berkas.");
   }
 });
+
 
 
 // Delete integration
@@ -631,6 +677,7 @@ app.get("/delete", async (req, res) => {
       const relativeFolder = path.relative(baseFolder, folderPath);
 
       if (
+        !relativeFolder ||
         relativeFolder.startsWith("..") ||
         path.isAbsolute(relativeFolder)
       ) {
