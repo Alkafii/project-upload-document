@@ -430,7 +430,6 @@
             const fileExtension = fileName.split('.').pop().toLowerCase();
 
             if (!allowedExtensions.includes(fileExtension)) {
-                // Tampilkan kotak alert Bootstrap di #clientErrorBox
                 $('#clientErrorBox').html(`
                     <div class="alert alert-danger p-2 text-center" role="alert">
                         <small>Format file tidak didukung! Harap unggah file PDF, Word (.doc/.docx), atau Excel (.xls/.xlsx).</small>

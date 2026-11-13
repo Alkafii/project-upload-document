@@ -171,7 +171,7 @@ app.get("/",async (req, res) => {
                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle py-0" type="button" id="dropdownMenuButton${i}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 Edit
                             </button>
-                            <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenu2">
                               <a class="dropdown-item" href="/read_data?id=${dataDb[i].id}">Update</a>
                               <button type="button" class="dropdown-item text-danger" data-toggle="modal" data-target="#deleteModal" data-id="${dataDb[i].id}" data-name="${dataDb[i].name}">
                                 Delete
@@ -333,14 +333,17 @@ app.get("/read_data", async (req, res) => {
                                   <label class="custom-file-label text-truncate text-success" for="doc_${i}" id="label_doc_${i}" data-browse="🗙" style="padding-right: 50px; font-weight: 500;" >
                                     ${foundFileName}
                                   </label>
-                                  <a href="/delete_file?id=${id}&fileName=${foundFileName}&docName=${docName}" 
-                                    class="position-absolute h-100 d-flex align-items-center justify-content-center text-decoration-none text-secondary" 
-                                    style="right: 0; top: 0; width: 42px; z-index: 10; background-color: #e9ecef; border-left: 1px solid #ced4da; border-radius: 0 0.25rem 0.25rem 0; font-size: 16px; cursor: pointer;"
-                                    title="Hapus berkas ini"
-                                    onclick="return confirm('Confirm to delete this file');">
-                                    🗙
-                                  </a>
-                              </div>
+                                  <button type="button" 
+                                      class="position-absolute h-100 d-flex align-items-center justify-content-center text-decoration-none text-secondary" 
+                                      style="right: 0; top: 0; width: 42px; z-index: 10; background-color: #e9ecef; border-left: 1px solid #ced4da; border-radius: 0 0.25rem 0.25rem 0; font-size: 16px; cursor: pointer; border: none;"
+                                      title="Hapus berkas ini"
+                                      data-toggle="modal" 
+                                      data-target="#modalDeleteConfirmation"
+                                      data-id="${id}"
+                                      data-filename="${foundFileName}">
+                                        🗙
+                                  </button>
+                               </div>
                               <small class="form-text text-muted">Document has been saved, click <a href="/download_file?id=${id}&fileName=${foundFileName}" target="_blank" class="font-weight-bold text-primary"> here </a> to download this document.</small>`;
           } else {
             fields[docName] = `<div class="custom-file">
