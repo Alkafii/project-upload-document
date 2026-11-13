@@ -136,7 +136,10 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({ 
   storage: storage,
-  fileFilter: fileFilter
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 2 * 1024 * 1024
+  }
 });
 
 
@@ -600,6 +603,32 @@ app.get("/delete", async (req, res) => {
     res.status(500).send("Terjadi kesalahan sistem saat memproses unduhan berkas.");
   }
 })
+
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      req.flash(
+        'error',
+        'Ukuran file terlalu besar! Maksimal dokumen yang diizinkan adalah 2 MB.'
+      );
+    } else {
+      req.flash('error', 'Terjadi kesalahan saat mengunggah dokumen.');
+    }
+
+    return res.redirect(req.originalUrl || '/upload');
+  }
+
+  if (err.message === 'Format file tidak valid! Hanya diperbolehkan PDF, Word, dan Excel.') {
+    req.flash(
+      'error',
+      'Format file tidak didukung! Harap unggah PDF, Word, atau Excel.'
+    );
+
+    return res.redirect(req.originalUrl || '/upload');
+  }
+
+  next(err);
+});
 
 app.listen(port, () => {
   console.log(`Server berjalan di http://localhost:${port}`);

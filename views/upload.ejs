@@ -14,15 +14,14 @@
             <form action="/upload" method="post" enctype="multipart/form-data">
                 <h3 class="text-primary text-uppercase font-weight-bold mt-3 text-left">Upload Dokumen</h3>
                 <p class="mb-1">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque vel elementum nibh.</p>
-                <% if (errorMessage) { %>
+
                     <div id="clientErrorBox" class="alert alert-danger p-2 text-center alert-dismissible fade show <%= !errorMessage ? 'd-none' : '' %>" role="alert">
                         <small id="errorMessageText"><%= errorMessage || '' %></small>
                         <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="outline: none;">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
-                <% } %>
-                <div id="clientErrorBox"></div>
+
                 <hr class="mb-4">
                 <div class="mb-3">
                     <label>Name of institution<label class="font-weight-bold text-danger">*</label></label>
@@ -405,96 +404,106 @@
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
     <script>
-        $('.custom-file-input').on('change', function() {
-            const file = this.files[0];
-            if (!file) return;
+        $(document).ready(function () {
+            const errorBox = $('#clientErrorBox');
+            const errorText = $('#errorMessageText');
 
-            $('#clientErrorBox').empty();
-
-            const maxSize = 2 * 1024 * 1024;
+            const MAX_FILE_SIZE = 2 * 1024 * 1024;
             const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx'];
-            const fileName = file.name;
-            const fileExtension = fileName.split('.').pop().toLowerCase();
 
-            if (!allowedExtensions.includes(fileExtension)) {
-                $('#clientErrorBox').html(`
-                    <div class="alert alert-danger p-2 text-center" role="alert">
-                        <small>Format file tidak didukung! Harap unggah file PDF, Word (.doc/.docx), atau Excel (.xls/.xlsx).</small>
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="outline: none;">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                `);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                resetInputFile($(this));
-                return;
+            function toggleError(message = '') {
+            errorText.text(message);
+            errorBox.toggleClass('d-none', !message).toggleClass('show', !!message);
+            if (message) window.scrollTo({ top: 0, behavior: 'smooth' });
             }
 
-            if (file.size > maxSize) {
-                $('#clientErrorBox').html(`
-                    <div class="alert alert-danger p-2 text-center" role="alert">
-                        <small>Ukuran file terlalu besar! Maksimal dokumen yang diizinkan adalah 6 MB.</small>
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="outline: none;">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                `);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                resetInputFile($(this));
-                return;
+            function validateFile(file) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!allowedExtensions.includes(ext)) return 'Format file tidak didukung! Gunakan PDF, DOC, DOCX, XLS, atau XLSX.';
+            if (file.size > MAX_FILE_SIZE) return 'Ukuran file terlalu besar! Maksimal dokumen adalah 2 MB.';
+            return null;
             }
 
-            $(this).next('.custom-file-label').addClass("selected").html(fileName);
-        });
+            function processFiles(input) {
+            const files = Array.from(input.files);
+            if (!files.length) return;
 
-        function resetInputFile(element) {
-            element.val('');
-            element.next('.custom-file-label').removeClass("selected").html('Choose file');
-        }
+            for (const file of files) {
+                const error = validateFile(file);
+                if (error) {
+                input.value = '';
+                $(input).next('.custom-file-label').removeClass('selected').text('Choose file');
+                return toggleError(error);
+                }
+            }
 
-        $('form').on('submit', function(e) {
-            let fileCount = 0;
-            $('.custom-file-input').each(function() {
-                if ($(this)[0].files.length > 0) {
-                    fileCount++;
+            $(input)
+                .next('.custom-file-label')
+                .addClass('selected')
+                .text(files.length > 1 ? `${files.length} files selected` : files[0].name);
+
+            toggleError();
+            }
+
+            $('.custom-file-input').on('change', function () {
+            processFiles(this);
+            });
+
+            $(document).on('dragover drop', (e) => e.preventDefault());
+
+            $('.custom-file')
+            .on('dragenter dragover', function (e) {
+                e.preventDefault();
+                $(this).addClass('drag-over');
+            })
+            .on('dragleave drop', function (e) {
+                e.preventDefault();
+                $(this).removeClass('drag-over');
+
+                if (e.type === 'drop') {
+                const input = $(this).find('.custom-file-input')[0];
+                const files = e.originalEvent.dataTransfer.files;
+                if (!input || !files.length) return;
+
+                const dt = new DataTransfer();
+                Array.from(files).forEach((file) => dt.items.add(file));
+                input.files = dt.files;
+                processFiles(input);
                 }
             });
-        });
 
-        document.getElementById('uploadForm')?.addEventListener('submit', function(event) {
-            var fileInput = document.getElementById('documentInput');
-            var errorDiv = document.getElementById('errorMessage');
-            
-            if (fileInput) {
-                console.log(fileInput);
+            $('form').on('submit', function (e) {
+            const files = $('.custom-file-input')
+                .toArray()
+                .flatMap((i) => Array.from(i.files));
+
+            if (!files.length) {
+                e.preventDefault();
+                return toggleError('Silakan unggah minimal satu dokumen sebelum melanjutkan.');
             }
-        });
 
-        $('.custom-file-input').attr('accept', '.pdf,.doc,.docx,.xls,.xlsx');
-
-        function toggleApiFields(selectedValue) {
-            const vaSection = document.getElementById('VA');
-            const vaSelect = document.getElementById('vaType');
-            const qrisSection = document.getElementById('QRIS');
-
-            if (selectedValue === 'Virtual Account SNAP') {
-                vaSection.style.display = 'block';
-                vaSelect.required = true;
-                qrisSection.style.display = 'none';
-            } else if (selectedValue === 'QRIS MPM SNAP') {
-                vaSection.style.display = 'none';
-                vaSelect.required = false;
-                vaSelect.value = '';
-                qrisSection.style.display = 'block';
-                $('#textOff').collapse('hide');
-                $('#textOn').collapse('hide');
-            } else {
-                vaSection.style.display = 'none';
-                vaSelect.required = false;
-                vaSelect.value = '';
-                qrisSection.style.display = 'none';
+            for (const file of files) {
+                const error = validateFile(file);
+                if (error) {
+                e.preventDefault();
+                return toggleError(error);
+                }
             }
-        }
+            });
+
+            $('.custom-file-input').attr('accept', '.pdf,.doc,.docx,.xls,.xlsx');
+
+            window.toggleApiFields = function (selectedValue) {
+            const isVA = selectedValue === 'Virtual Account SNAP';
+            const isQRIS = selectedValue === 'QRIS MPM SNAP';
+
+            $('#VA').toggle(isVA);
+            $('#vaType').prop('required', isVA).val(isVA ? $('#vaType').val() : '');
+            $('#QRIS').toggle(isQRIS);
+
+            if (isQRIS) $('#textOff, #textOn').collapse('hide');
+            };
+        });
     </script>
 </body>
 </html>
