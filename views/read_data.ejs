@@ -18,7 +18,7 @@
                 <% if (message) { %>
                     <div class="alert alert-success w-100 text-center mb-4 shadow-sm" style="max-width: 1000px;" role="alert">
                         <strong><%= message %></strong>
-                        <button type="button" class="close" aria-label="Close" onclick="hideErrorMessage()" style="outline: none;">
+                        <button type="button" class="close" aria-label="Close" onclick="hideErrorMessage()" style="outline: none; padding-bottom: 5px;">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
@@ -282,228 +282,150 @@
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', () => {
             const form = document.querySelector('form[action^="/update_data"]');
             const errorBox = document.getElementById('clientErrorBox');
             const errorText = document.getElementById('errorMessageText');
 
             const MAX_FILE_SIZE = 2 * 1024 * 1024;
             const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx'];
-
             const fileInputs = Array.from(document.querySelectorAll('.custom-file-input'));
 
-            // Simpan label awal, termasuk nama file yang sudah tersimpan.
-            const originalLabels = new Map();
+            // Simpan label awal (termasuk nama file lama dari EJS)
+            const originalLabels = new Map(
+                fileInputs.map((input) => [input, document.getElementById(`label_${input.id}`)?.textContent.trim() || 'Choose file'])
+            );
 
-            fileInputs.forEach(function (input) {
-                const label = document.getElementById('label_' + input.id);
-
-                if (label) {
-                originalLabels.set(input, label.textContent.trim());
-                }
-            });
-
-            function showErrorMessage(message) {
-                errorText.textContent = message;
-                errorBox.classList.remove('d-none');
-                errorBox.classList.add('show');
-
-                window.scrollTo({
-                top: 0,
-                behavior: 'smooth',
-                });
+            function toggleError(msg = '') {
+                errorText.textContent = msg;
+                errorBox.classList.toggle('d-none', !msg);
+                errorBox.classList.toggle('show', !!msg);
+                if (msg) window.scrollTo({ top: 0, behavior: 'smooth' });
             }
-
-            function hideErrorMessage() {
-                errorText.textContent = '';
-                errorBox.classList.add('d-none');
-                errorBox.classList.remove('show');
-            }
-
-            // Agar tombol close pada alert tetap berfungsi.
-            window.hideErrorMessage = hideErrorMessage;
+            window.hideErrorMessage = () => toggleError();
 
             function validateFile(file) {
-                const extension = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : '';
-
-                if (!ALLOWED_EXTENSIONS.includes(extension)) {
-                return 'Format file tidak didukung! Gunakan PDF, DOC, DOCX, XLS, atau XLSX.';
-                }
-
-                if (file.size > MAX_FILE_SIZE) {
-                return 'Ukuran file terlalu besar! Maksimal dokumen adalah 2 MB.';
-                }
-
+                const ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+                if (!ALLOWED_EXTENSIONS.includes(ext)) return 'Format file tidak didukung! Gunakan PDF, DOC, DOCX, XLS, atau XLSX.';
+                if (file.size > MAX_FILE_SIZE) return 'Ukuran file terlalu besar! Maksimal dokumen adalah 2 MB.';
                 return null;
             }
 
-            function updateLabel(input, fileName) {
-                const label = document.getElementById('label_' + input.id);
-
+            function handleFileUI(input, fileName = '') {
+                const label = document.getElementById(`label_${input.id}`);
                 if (!label) return;
 
+                if (fileName) {
                 label.textContent = fileName;
-                label.classList.add('selected');
+                label.classList.add('selected', 'text-success');
                 label.classList.remove('text-muted');
-                label.classList.add('text-success');
-            }
-
-            function resetInputFile(input) {
+                } else {
                 input.value = '';
-
-                const label = document.getElementById('label_' + input.id);
-
-                if (!label) return;
-
-                const originalText = originalLabels.get(input) || 'Choose file';
-
+                const originalText = originalLabels.get(input);
                 label.textContent = originalText;
-                label.classList.remove('selected');
-
-                if (originalText === 'Choose file') {
-                label.classList.remove('text-success');
-                label.classList.add('text-muted');
+                label.classList.remove('selected', 'text-success');
+                if (originalText === 'Choose file') label.classList.add('text-muted');
                 }
             }
 
-            function validateAllSelectedFiles() {
+            function validateAllFiles() {
                 for (const input of fileInputs) {
-                if (!input.files || input.files.length === 0) {
-                    continue;
-                }
-
-                const error = validateFile(input.files[0]);
-
-                if (error) {
-                    resetInputFile(input);
-                    showErrorMessage(error);
+                if (input.files?.[0]) {
+                    const error = validateFile(input.files[0]);
+                    if (error) {
+                    handleFileUI(input);
+                    toggleError(error);
                     return false;
+                    }
                 }
                 }
-
                 return true;
             }
 
-            fileInputs.forEach(function (input) {
-                // VALIDASI FILE DARI FILE PICKER
-                input.addEventListener('change', function () {
-                if (!input.files || input.files.length === 0) return;
-
-                const file = input.files[0];
+            fileInputs.forEach((input) => {
+                const processInput = (file) => {
                 const error = validateFile(file);
-
                 if (error) {
-                    resetInputFile(input);
-                    showErrorMessage(error);
-                    return;
+                    handleFileUI(input);
+                    return toggleError(error);
                 }
+                handleFileUI(input, file.name);
+                if (validateAllFiles()) toggleError();
+                };
 
-                updateLabel(input, file.name);
-
-                if (validateAllSelectedFiles()) {
-                    hideErrorMessage();
-                }
-                });
+                // 1. Validasi File Picker (Tombol Upload)
+                input.addEventListener('change', () => input.files?.[0] && processInput(input.files[0]));
 
                 const dropArea = input.closest('.custom-file');
-
                 if (!dropArea) return;
 
-                // EFEK SAAT FILE DISERET
-                ['dragenter', 'dragover'].forEach(function (eventName) {
-                dropArea.addEventListener(eventName, function (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-
-                    dropArea.classList.add('drag-over');
+                // 2. Drag & Drop Efek & Validasi
+                ['dragenter', 'dragover', 'dragleave', 'dragend'].forEach((evt) => {
+                dropArea.addEventListener(evt, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropArea.classList.toggle('drag-over', ['dragenter', 'dragover'].includes(evt));
                 });
                 });
 
-                ['dragleave', 'dragend'].forEach(function (eventName) {
-                dropArea.addEventListener(eventName, function (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-
-                    dropArea.classList.remove('drag-over');
-                });
-                });
-
-                // VALIDASI FILE DARI DRAG AND DROP
-                dropArea.addEventListener('drop', function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-
+                dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 dropArea.classList.remove('drag-over');
 
-                const files = event.dataTransfer.files;
+                const file = e.dataTransfer.files?.[0];
+                if (!file) return;
 
-                if (!files || files.length === 0) return;
-
-                // Setiap kolom hanya menerima satu dokumen.
-                const file = files[0];
                 const error = validateFile(file);
-
                 if (error) {
-                    resetInputFile(input);
-                    showErrorMessage(error);
-                    return;
+                    handleFileUI(input);
+                    return toggleError(error);
                 }
 
                 try {
                     const transfer = new DataTransfer();
                     transfer.items.add(file);
-
                     input.files = transfer.files;
-
-                    updateLabel(input, file.name);
-
-                    if (validateAllSelectedFiles()) {
-                    hideErrorMessage();
-                    }
-                } catch (error) {
-                    showErrorMessage(
-                    'Browser tidak mendukung drag and drop. Silakan pilih file melalui tombol Choose file.'
-                    );
+                    processInput(file);
+                } catch (err) {
+                    toggleError('Browser tidak mendukung drag and drop. Silakan pilih file melalui tombol.');
                 }
                 });
             });
 
-            // Mencegah browser membuka file ketika dilepas di luar area upload.
-            document.addEventListener('dragover', function (event) {
-                event.preventDefault();
-            });
+            // Mencegah browser membuka file saat di-drop sembarangan
+            document.addEventListener('dragover', (e) => e.preventDefault());
+            document.addEventListener('drop', (e) => !e.target.closest('.custom-file') && e.preventDefault());
 
-            document.addEventListener('drop', function (event) {
-                if (!event.target.closest('.custom-file')) {
-                event.preventDefault();
-                }
-            });
-
-            // VALIDASI SAAT SUBMIT
+            // 3. Validasi Form Submit
             if (form) {
-                form.addEventListener('submit', function (event) {
-                const selectedFiles = fileInputs.filter(function (input) {
-                    return input.files && input.files.length > 0;
-                });
-
-                if (selectedFiles.length === 0) {
-                    event.preventDefault();
-
-                    showErrorMessage('Anda belum memilih dokumen baru untuk diperbarui!');
-
-                    return;
+                form.addEventListener('submit', (e) => {
+                const hasFiles = fileInputs.some((i) => i.files?.length > 0);
+                if (!hasFiles) {
+                    e.preventDefault();
+                    return toggleError('Anda belum memilih dokumen baru untuk diperbarui!');
                 }
-
-                if (!validateAllSelectedFiles()) {
-                    event.preventDefault();
-                }
+                if (!validateAllFiles()) e.preventDefault();
                 });
             }
         });
+
+        $(document).ready(function () {
+            $("#modalDeleteConfirmation").on("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute("data-id");
+                const fileName = button.getAttribute("data-filename");
+
+                const modal = this;
+
+                modal.querySelector("#nama-berkas-modal").textContent = fileName;
+
+                const deleteUrl = `/delete_file?id=${encodeURIComponent(id)}&fileName=${encodeURIComponent(fileName)}`;
+
+                modal.querySelector("#btn-delete-confirmation").setAttribute("href",deleteUrl);
+            });
+        });
     </script>
 
-    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
-</body>
+    </body>
 </html>
